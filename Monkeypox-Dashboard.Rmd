@@ -1,0 +1,216 @@
+---
+title: "Monkey Pox Outbreak 2022"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: spacelab
+    source: embed
+    smart: false
+runtime: shiny
+---
+
+```{r include = FALSE}
+# LOAD PACKAGES
+
+library(DT)
+library(ggmap)
+library(shiny)
+library(knitr)
+library(pander)
+library(leaflet)
+library(viridis)
+library(rsconnect)
+library(tidyverse)
+library(flexdashboard)
+library(knitr)
+library(rpivotTable)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(openintro)
+library(ggvis)
+library(highcharter)
+library(viridisLite)
+library(forecast)
+library(treemap)
+library(tidyverse)
+library(ggpattern)
+library(usdata)
+library(usmapdata)
+library(showtext)
+library(geosphere)
+library(data.table)
+
+
+# READ IN DATA
+```
+
+
+```{r include = FALSE}
+
+library (readr)
+
+urlfile="https://raw.githubusercontent.com/dunsinagb/Monkey-Pox-Outbreak-Dashboard/main/MPX-Country-Data.csv"
+
+mapData<-read_csv(url(urlfile))
+
+```
+
+MPX Cases by Country {data-orientation=rows}
+=====================================  
+
+Inputs {.sidebar}
+-------------------------------------
+
+```
+This dashboard shows the latest 
+updates on the 
+Monkey-Pox outbreak.
+I made use of the CDC 
+dataset as at 29th july, 2022. 
+The data visualization 
+was created with R.
+
+Data Sources:
+
+* https://www.cdc.gov/poxvirus/monkeypox/response/2022/world-map.html
+
+```
+
+Row
+-------------------------------------
+
+### Country Affected
+  
+```{r}
+valueBox(length(mapData$Country),
+         icon = "fa-globe")
+```
+
+### Total Cases Reported
+  
+```{r}
+valueBox(sum(mapData$Cases),
+         icon = "fa-user",
+         color = ( "orange" ))
+```
+
+### United States Cases
+  
+```{r}
+
+valueBox(paste("4,906"), 
+         icon = "fa-bed",
+         color = ( "orange" ))
+```
+
+### Spain Cases
+  
+```{r}
+
+valueBox(paste("4,298"), 
+         icon = "fa-bed",
+         color = ( "orange" ))
+```
+
+### Germany Cases
+  
+```{r}
+
+valueBox(paste("2,595"), 
+         icon = "fa-bed",
+         color = ( "orange" ))
+```
+
+Column
+-------------------------------------
+
+### Monkey Pox Cases by Country
+
+```{r}
+
+# LEAFLET MAPPING
+  
+WorldData=map_data("world")  #to take the world data
+
+Combined = WorldData[mapData$Country %in% mapData$Country, ]
+Combined$value = mapData$Cases[match(Combined$region, mapData$Country)]
+
+Countries = unique(Combined$Country)
+CDF = data.frame(label1=Countries)
+for(i in CDF){
+  Combined$value = ifelse(Combined$Country %in% CDF$label1[i], (mapData$Cases), Combined$value)
+}
+
+ggplot(Combined, aes(x=long, y=lat, group = group, fill = value)) + 
+  geom_polygon(colour = "white") +
+  scale_fill_continuous(low = "blue",
+                        high = "orange",
+                        guide="colorbar") +
+  theme_bw()  +
+  labs(fill = "Cases" ,title = "High risk countries with >3,000 cases include USA and Spain", x="", y="") +
+  scale_y_continuous(breaks=c()) +
+  scale_x_continuous(breaks=c()) +
+  theme(panel.border =  element_blank())
+
+
+```
+
+### Monkey Pox: USA Cases
+
+```{r}
+
+# LEAFLET MAPPING
+
+#get state map coordinates
+state_map<-map_data("state")
+
+urlfile1="https://raw.githubusercontent.com/dunsinagb/Monkey-Pox-Outbreak-Dashboard/main/Monkeypox%20and%20Orthopoxvirus%20Cases%20in%20the%20U.S..csv"
+
+mapDat<-read_csv(url(urlfile1))
+
+
+Combined1 = state_map[mapDat$State %in% mapDat$State, ]
+Combined1$value = mapDat$Cases[match(Combined1$region, mapDat$State)]
+
+State = unique(Combined1$State)
+CDF = data.frame(label1=State)
+for(i in CDF){
+  Combined1$value = ifelse(Combined1$State %in% CDF$label1[i], (mapDat$Cases), Combined1$value)
+}
+
+ggplot(Combined1, aes(x=long, y=lat, group = group, fill = value)) + 
+  geom_polygon(colour = "white") +
+  scale_fill_continuous(low = "blue",
+                        high = "orange",
+                        guide="colorbar") +
+  theme_bw()  +
+  labs(fill = "Cases" ,title = "High risk states with >500 cases include New York and Carlifonia", x="", y="") +
+  scale_y_continuous(breaks=c()) +
+  scale_x_continuous(breaks=c()) +
+  theme(panel.border =  element_blank())
+
+
+```
+
+
+Data Table (World)
+=====================================  
+
+```{r}
+datatable(mapData,
+          caption = "Monkey Pox Cases (World data)",
+          rownames = T,
+          filter = "top",
+          options = list(pageLength = 25))
+```
+
+Data Table (USA)
+=====================================  
+
+```{r}
+datatable(mapDat,
+          caption = "Monkey Pox Cases (USA data)",
+          rownames = T,
+          filter = "top",
+          options = list(pageLength = 25))
+```
